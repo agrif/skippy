@@ -1,0 +1,16 @@
+[package]
+name = "skippy"
+version = "0.1.0"
+edition = "2018"
+
+description = "An interface for speaking SCPI."
+authors = ["Aaron Griffith <aargri@gmail.com>"]
+repository = "https://github.com/agrif/skippy"
+documentation = "https://docs.rs/skippy"
+readme = "README.md"
+license = "MIT"
+
+keywords = ["scpi", "ieee488"]
+categories = ["network-programming", "science"]
+
+[dependencies]
