@@ -31,8 +31,14 @@ where
         if self.query {
             write!(f, "?")?;
         }
+        let mut first = true;
         for arg in self.arguments.borrow() {
-            write!(f, " ")?;
+            if first {
+                write!(f, " ")?;
+                first = false;
+            } else {
+                write!(f, ",")?;
+            }
             arg.fmt(f)?;
         }
         Ok(())
@@ -74,8 +80,8 @@ mod tests {
             true,
             crate::arguments![],
         );
-        assert_eq!(format!("{}", s), ":BASE:THEN2 SYM 2");
-        assert_eq!(format!("{:#}", s), ":BASEname:THENname2 SYMbol 2");
+        assert_eq!(format!("{}", s), ":BASE:THEN2 SYM,2");
+        assert_eq!(format!("{:#}", s), ":BASEname:THENname2 SYMbol,2");
         assert_eq!(
             s,
             crate::command!(:BASEname:THENname[2], Discrete("SYMbol"), 2)
