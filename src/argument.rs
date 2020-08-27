@@ -25,7 +25,18 @@ impl<'a> fmt::Display for Argument<'a> {
             Discrete(s) => {
                 write!(f, "{}", pretty_name(s, verbose))?;
             }
-            Str(s) => write!(f, "\"{}\"", s)?, // FIXME escape " as ""
+            Str(s) => {
+                let mut it = s.split('"');
+                write!(f, "\"")?;
+                if let Some(part) = it.next() {
+                    write!(f, "{}", part)?;
+                    for part in it {
+                        write!(f, "\"\"")?;
+                        write!(f, "{}", part)?;
+                    }
+                }
+                write!(f, "\"")?;
+            }
             Bool(b) => write!(f, "{}", if *b { "1" } else { "0" })?,
         }
         Ok(())
@@ -95,12 +106,12 @@ mod tests {
         assert_eq!(a, crate::arguments!["HELlo"][0]);
     }
 
-    // #[test]
-    // fn str_escape() {
-    //     let a = Str("quote\"here");
-    //     assert_eq!(format!("{}", a), "\"quote\"\"here\"");
-    //     assert_eq!(a, crate::arguments!["quote\"here"][0]);
-    // }
+    #[test]
+    fn str_escape() {
+        let a = Str("quote\"here\"now");
+        assert_eq!(format!("{}", a), "\"quote\"\"here\"\"now\"");
+        assert_eq!(a, crate::arguments!["quote\"here\"now"][0]);
+    }
 
     #[test]
     fn discrete() {
