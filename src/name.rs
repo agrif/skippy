@@ -4,13 +4,6 @@ pub struct NamePart<'a>(pub &'a str, pub Option<usize>);
 pub trait CommandName<'a>: Clone + Sized {
     type Iterator: std::iter::Iterator<Item = NamePart<'a>>;
     fn parts(&self) -> Self::Iterator;
-
-    fn append(&self, part: NamePart<'a>) -> NameCons<'a, Self> {
-        NameCons {
-            first: self.clone(),
-            last: part,
-        }
-    }
 }
 
 impl<'a, 'b> CommandName<'a> for &'a [NamePart<'b>] {
@@ -42,6 +35,12 @@ pub struct NameConsIter<'a, I> {
     last: Option<NamePart<'a>>,
 }
 
+impl<'a, N> NameCons<'a, N> {
+    pub const fn new(first: N, last: NamePart<'a>) -> Self {
+        Self { first, last }
+    }
+}
+
 impl<'a, N> CommandName<'a> for NameCons<'a, N>
 where
     N: CommandName<'a>,
@@ -71,7 +70,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{CommandName, Empty, NamePart};
+    use super::{CommandName, Empty, NameCons, NamePart};
 
     #[test]
     fn empty() {
@@ -90,9 +89,10 @@ mod tests {
 
     #[test]
     fn cons() {
-        let n = Empty
-            .append(NamePart("hello", None))
-            .append(NamePart("there", Some(2)));
+        let n = NameCons::new(
+            NameCons::new(Empty, NamePart("hello", None)),
+            NamePart("there", Some(2)),
+        );
         assert_eq!(
             n.parts().collect::<Vec<_>>(),
             vec![NamePart("hello", None), NamePart("there", Some(2))]

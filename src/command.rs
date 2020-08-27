@@ -1,12 +1,12 @@
-use crate::{CommandName, NamePart};
+use crate::CommandName;
 
 use std::fmt;
 
 #[derive(Clone, Debug)]
-pub struct Command<'a, N = &'a [NamePart<'a>]> {
+pub struct Command<N, A> {
     name: N,
     query: bool,
-    arguments: &'a [Argument<'a>],
+    arguments: A,
 }
 
 #[derive(Clone, Debug)]
@@ -27,11 +27,11 @@ fn pretty_name(name: &str, verbose: bool) -> &str {
     }
 }
 
-impl<'a, N> Command<'a, N> {
+impl<N, A> Command<N, A> {
     pub const fn new(
         name: N,
         query: bool,
-        arguments: &'a [Argument<'a>],
+        arguments: A,
     ) -> Self {
         Self {
             name,
@@ -41,9 +41,10 @@ impl<'a, N> Command<'a, N> {
     }
 }
 
-impl<'a, N> fmt::Display for Command<'a, N>
+impl<'a, N, A> fmt::Display for Command<N, A>
 where
     N: CommandName<'a>,
+    for<'b> &'b A: std::iter::IntoIterator<Item = &'b Argument<'a>>,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let verbose = f.alternate();
@@ -56,7 +57,7 @@ where
         if self.query {
             write!(f, "?")?;
         }
-        for arg in self.arguments {
+        for arg in &self.arguments {
             write!(f, " ")?;
             arg.fmt(f)?;
         }
@@ -85,7 +86,7 @@ impl<'a> fmt::Display for Argument<'a> {
 mod tests {
     use super::Argument::*;
     use super::Command;
-    use super::NamePart;
+    use crate::NamePart;
 
     #[test]
     fn format_arguments() {
@@ -105,13 +106,13 @@ mod tests {
             [NamePart("BASEname", None), NamePart("THENname", Some(2))]
                 .as_ref(),
             false,
-            &[Name("SYMbol"), Int(2)],
+            [Name("SYMbol"), Int(2)],
         );
         let q = Command::new(
             [NamePart("BASEname", None), NamePart("THENname", Some(2))]
                 .as_ref(),
             true,
-            &[],
+            [],
         );
         assert_eq!(format!("{}", s), ":BASE:THEN2 SYM 2");
         assert_eq!(format!("{:#}", s), ":BASEname:THENname2 SYMbol 2");
