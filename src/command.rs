@@ -1,12 +1,12 @@
-use crate::CommandName;
+use crate::{pretty_name, NamePart};
 
 use std::fmt;
 
 #[derive(Clone, Debug)]
-pub struct Command<N, A> {
-    name: N,
+pub struct Command<'a> {
+    name: &'a [NamePart<'a>],
     query: bool,
-    arguments: A,
+    arguments: &'a [Argument<'a>],
 }
 
 #[derive(Clone, Debug)]
@@ -16,22 +16,11 @@ pub enum Argument<'a> {
     Int(isize),
 }
 
-fn pretty_name(name: &str, verbose: bool) -> &str {
-    if verbose {
-        name
-    } else {
-        let end = name
-            .find(|c: char| !c.is_ascii_uppercase())
-            .unwrap_or(name.len());
-        &name[..end]
-    }
-}
-
-impl<N, A> Command<N, A> {
+impl<'a> Command<'a> {
     pub const fn new(
-        name: N,
+        name: &'a [NamePart<'a>],
         query: bool,
-        arguments: A,
+        arguments: &'a [Argument<'a>],
     ) -> Self {
         Self {
             name,
@@ -41,23 +30,15 @@ impl<N, A> Command<N, A> {
     }
 }
 
-impl<'a, N, A> fmt::Display for Command<N, A>
-where
-    N: CommandName<'a>,
-    for<'b> &'b A: std::iter::IntoIterator<Item = &'b Argument<'a>>,
-{
+impl<'a> fmt::Display for Command<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let verbose = f.alternate();
-        for part in self.name.parts() {
-            write!(f, ":{}", pretty_name(part.0, verbose))?;
-            if let Some(n) = part.1 {
-                write!(f, "{}", n)?;
-            }
+        for part in self.name {
+            part.fmt(f)?;
         }
         if self.query {
             write!(f, "?")?;
         }
-        for arg in &self.arguments {
+        for arg in self.arguments {
             write!(f, " ")?;
             arg.fmt(f)?;
         }
@@ -103,16 +84,14 @@ mod tests {
     #[test]
     fn format_command() {
         let s = Command::new(
-            [NamePart("BASEname", None), NamePart("THENname", Some(2))]
-                .as_ref(),
+            &[NamePart("BASEname", None), NamePart("THENname", Some(2))],
             false,
-            [Name("SYMbol"), Int(2)],
+            &[Name("SYMbol"), Int(2)],
         );
         let q = Command::new(
-            [NamePart("BASEname", None), NamePart("THENname", Some(2))]
-                .as_ref(),
+            &[NamePart("BASEname", None), NamePart("THENname", Some(2))],
             true,
-            [],
+            &[],
         );
         assert_eq!(format!("{}", s), ":BASE:THEN2 SYM 2");
         assert_eq!(format!("{:#}", s), ":BASEname:THENname2 SYMbol 2");
