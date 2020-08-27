@@ -2,19 +2,15 @@ use crate::{Argument, NamePart};
 
 use std::fmt;
 
-#[derive(Clone, Debug)]
-pub struct Command<'a> {
-    name: &'a [NamePart<'a>],
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Command<N, A> {
+    name: N,
     query: bool,
-    arguments: &'a [Argument<'a>],
+    arguments: A,
 }
 
-impl<'a> Command<'a> {
-    pub const fn new(
-        name: &'a [NamePart<'a>],
-        query: bool,
-        arguments: &'a [Argument<'a>],
-    ) -> Self {
+impl<N, A> Command<N, A> {
+    pub const fn new(name: N, query: bool, arguments: A) -> Self {
         Self {
             name,
             query,
@@ -23,15 +19,19 @@ impl<'a> Command<'a> {
     }
 }
 
-impl<'a> fmt::Display for Command<'a> {
+impl<'a, N, A> fmt::Display for Command<N, A>
+where
+    N: std::borrow::Borrow<[NamePart<'a>]>,
+    A: std::borrow::Borrow<[Argument<'a>]>,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for part in self.name {
+        for part in self.name.borrow() {
             part.fmt(f)?;
         }
         if self.query {
             write!(f, "?")?;
         }
-        for arg in self.arguments {
+        for arg in self.arguments.borrow() {
             write!(f, " ")?;
             arg.fmt(f)?;
         }
@@ -39,27 +39,49 @@ impl<'a> fmt::Display for Command<'a> {
     }
 }
 
+#[macro_export]
+macro_rules! command {
+    ($(: $a:ident $([ $n:expr ])? )* $(, $($e:expr),* $(,)? )? ) => {
+        $crate::Command::new(
+            $crate::name!($( : $a $([ $n ])? )*),
+            false,
+            $crate::arguments![ $($($e),*)? ],
+        )
+    };
+    ($(: $a:ident $([ $n:expr ])? )* ? $(, $($e:expr),* $(,)? )? ) => {
+        $crate::Command::new(
+            $crate::name!($( : $a $([ $n ])? )*),
+            true,
+            $crate::arguments![ $($($e),*)? ],
+        )
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::Argument::*;
     use super::Command;
-    use crate::NamePart;
 
     #[test]
     fn format_command() {
         let s = Command::new(
-            &[NamePart("BASEname", None), NamePart("THENname", Some(2))],
+            crate::name!(:BASEname:THENname[2]),
             false,
-            &[Name("SYMbol"), Int(2)],
+            crate::arguments![Discrete("SYMbol"), 2],
         );
         let q = Command::new(
-            &[NamePart("BASEname", None), NamePart("THENname", Some(2))],
+            crate::name!(:BASEname:THENname[2]),
             true,
-            &[],
+            crate::arguments![],
         );
         assert_eq!(format!("{}", s), ":BASE:THEN2 SYM 2");
         assert_eq!(format!("{:#}", s), ":BASEname:THENname2 SYMbol 2");
+        assert_eq!(
+            s,
+            crate::command!(:BASEname:THENname[2], Discrete("SYMbol"), 2)
+        );
         assert_eq!(format!("{}", q), ":BASE:THEN2?");
         assert_eq!(format!("{:#}", q), ":BASEname:THENname2?");
+        assert_eq!(q, crate::command!(:BASEname:THENname[2]?));
     }
 }

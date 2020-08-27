@@ -15,6 +15,25 @@ impl<'a> fmt::Display for NamePart<'a> {
     }
 }
 
+#[macro_export]
+macro_rules! name {
+    () => {{let x: [NamePart; 0] = []; x}};
+    ($(: $e:ident $([ $n:expr ])? )*) => {
+        [ $($crate::name_part!(: $e $([ $n ])?)),* ]
+    };
+}
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! name_part {
+    (: $i:ident) => {
+        $crate::NamePart(stringify!($i), ::std::option::Option::None)
+    };
+    (: $i:ident [ $n:expr ]) => {
+        $crate::NamePart(stringify!($i), ::std::option::Option::Some($n))
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::NamePart;
@@ -22,6 +41,7 @@ mod tests {
     #[test]
     fn name() {
         let n = NamePart("SOMEthing", None);
+        assert_eq!(n, crate::name_part!(:SOMEthing));
         assert_eq!(format!("{}", n), ":SOME");
         assert_eq!(format!("{:#}", n), ":SOMEthing");
     }
@@ -29,7 +49,13 @@ mod tests {
     #[test]
     fn name_number() {
         let n = NamePart("SOMEthing", Some(2));
+        assert_eq!(n, crate::name_part!(:SOMEthing[2]));
         assert_eq!(format!("{}", n), ":SOME2");
         assert_eq!(format!("{:#}", n), ":SOMEthing2");
+    }
+
+    #[test]
+    fn empty_macro() {
+        crate::name!();
     }
 }
