@@ -12,7 +12,7 @@ fn pretty_name(name: &str, verbose: bool) -> &str {
         name
     } else {
         let end = name
-            .find(|c: char| !c.is_ascii_uppercase())
+            .find(|c: char| !c.is_ascii_uppercase() && c != '*')
             .unwrap_or(name.len());
         &name[..end]
     }

@@ -61,6 +61,20 @@ macro_rules! command {
             $crate::arguments![ $($($e),*)? ],
         )
     };
+    ($(: * $a:ident $([ $n:expr ])? )* $(, $($e:expr),* $(,)? )? ) => {
+        $crate::Command::new(
+            $crate::name!($( : * $a $([ $n ])? )*),
+            false,
+            $crate::arguments![ $($($e),*)? ],
+        )
+    };
+    ($(: * $a:ident $([ $n:expr ])? )* ? $(, $($e:expr),* $(,)? )? ) => {
+        $crate::Command::new(
+            $crate::name!($( : * $a $([ $n ])? )*),
+            true,
+            $crate::arguments![ $($($e),*)? ],
+        )
+    };
 }
 
 #[cfg(test)]
@@ -75,19 +89,31 @@ mod tests {
             false,
             crate::arguments![Discrete("SYMbol"), 2],
         );
-        let q = Command::new(
-            crate::name!(:BASEname:THENname[2]),
-            true,
-            crate::arguments![],
-        );
         assert_eq!(format!("{}", s), ":BASE:THEN2 SYM,2");
         assert_eq!(format!("{:#}", s), ":BASEname:THENname2 SYMbol,2");
         assert_eq!(
             s,
             crate::command!(:BASEname:THENname[2], Discrete("SYMbol"), 2)
         );
+    }
+
+    #[test]
+    fn format_query() {
+        let q = Command::new(
+            crate::name!(:BASEname:THENname[2]),
+            true,
+            crate::arguments![],
+        );
         assert_eq!(format!("{}", q), ":BASE:THEN2?");
         assert_eq!(format!("{:#}", q), ":BASEname:THENname2?");
         assert_eq!(q, crate::command!(:BASEname:THENname[2]?));
+    }
+
+    #[test]
+    fn format_asterisk() {
+        let q = Command::new(crate::name!(:*IQN), true, crate::arguments![]);
+        assert_eq!(format!("{}", q), ":*IQN?");
+        assert_eq!(format!("{:#}", q), ":*IQN?");
+        assert_eq!(q, crate::command!(:*IQN?));
     }
 }

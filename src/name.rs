@@ -21,6 +21,9 @@ macro_rules! name {
     ($(: $e:ident $([ $n:expr ])? )*) => {
         [ $($crate::name_part!(: $e $([ $n ])?)),* ]
     };
+    ($(: * $e:ident $([ $n:expr ])? )*) => {
+        [ $($crate::name_part!(: * $e $([ $n ])?)),* ]
+    };
 }
 
 #[macro_export]
@@ -31,6 +34,18 @@ macro_rules! name_part {
     };
     (: $i:ident [ $n:expr ]) => {
         $crate::NamePart(stringify!($i), ::std::option::Option::Some($n))
+    };
+    (: * $i:ident) => {
+        $crate::NamePart(
+            concat!("*", stringify!($i)),
+            ::std::option::Option::None,
+        )
+    };
+    (: * $i:ident [ $n:expr ]) => {
+        $crate::NamePart(
+            concat!("*", stringify!($i)),
+            ::std::option::Option::Some($n),
+        )
     };
 }
 
@@ -52,6 +67,14 @@ mod tests {
         assert_eq!(n, crate::name_part!(:SOMEthing[2]));
         assert_eq!(format!("{}", n), ":SOME2");
         assert_eq!(format!("{:#}", n), ":SOMEthing2");
+    }
+
+    #[test]
+    fn asterisk() {
+        let n = NamePart("*IDN", Some(2));
+        assert_eq!(n, crate::name_part!(:*IDN[2]));
+        assert_eq!(format!("{}", n), ":*IDN2");
+        assert_eq!([n], crate::name!(:*IDN[2]));
     }
 
     #[test]
