@@ -77,6 +77,20 @@ macro_rules! command {
     };
 }
 
+#[macro_export]
+macro_rules! write {
+    ($dst:expr, $($arg:tt)*) => {
+        ::std::write!($dst, "{}", $crate::command!($($arg)*))
+    };
+}
+
+#[macro_export]
+macro_rules! writeln {
+    ($dst:expr, $($arg:tt)*) => {
+        ::std::write!($dst, "{}\n", $crate::command!($($arg)*))
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::Argument::*;
